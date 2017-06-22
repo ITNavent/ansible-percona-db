@@ -1,0 +1,3 @@
+---
+# add roles or playbooks here
+- include: playbooks/percona.play.yml

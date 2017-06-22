@@ -1,0 +1,47 @@
+---
+driver:
+  name: docker
+
+provisioner:
+  name: ansible_playbook
+  hosts: localhost
+  sudo_command: sudo -E -H
+  require_pip: true
+  ansible_verbose: true
+  ansible_verbosity: 2
+  ansible_version: 2.2.0.0
+  require_chef_for_busser: false
+  require_ruby_for_busser: true
+  root_path: '/tmp/kitchen'
+  additional_copy_path: playbooks
+  ansible_connection: ssh
+  ansible_cfg_path: ansible.cfg
+  roles_path: '.'
+  playbook: site.yml
+
+platforms:
+  - name: ubuntu-14.04
+    driver_config:
+      image: ubuntu:14.04
+      platform: ubuntu
+
+verifier:
+  name: busser
+  plugin:
+    - Ansiblespec
+  ruby_bindir: '/usr/bin'
+
+suites:
+  - name: percona_server
+    driver:
+      instance_name: percona-server
+      hostname: percona-server.container
+    provisioner:
+      ansible_extra_flags: '--tags=percona-server'
+
+  - name: percona_xtradb
+    driver:
+      instance_name: percona-xtradb
+      hostname: percona-xtradb.container
+    provisioner:
+      ansible_extra_flags: '--tags=percona-xtradb'

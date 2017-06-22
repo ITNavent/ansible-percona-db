@@ -1,0 +1,26 @@
+language: ruby
+cache: bundler
+sudo: false
+services: docker
+
+rvm:
+  - 2.3.0
+
+env:
+  global:
+    - KITCHEN_YAML=.kitchen.travis.yml
+
+  matrix:
+    - TEST_SUITE=percona-server-ubuntu-1404
+    - TEST_SUITE=percona-xtradb-ubuntu-1404
+
+script:
+  - bundle exec kitchen verify ${TEST_SUITE}
+
+notifications:
+  webhooks: https://galaxy.ansible.com/api/v1/notifications/
+  on_success: always
+
+branches:
+  only:
+  - master

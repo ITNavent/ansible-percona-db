@@ -1,0 +1,77 @@
+---
+- name: add percona apt key
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: 8507EFA5
+    state: present
+
+- name: add percona repository
+  apt_repository:
+    repo: 'deb http://repo.percona.com/apt trusty main'
+    state: present
+
+- name: install percona packages
+  apt:
+    name: "{{ item }}"
+    install_recommends: no
+    state: present
+    update_cache: yes
+  with_items:
+    - percona-server-client-{{ percona_version }}
+    - percona-server-server-{{ percona_version }}
+    - percona-toolkit
+    - python-mysqldb
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: create Percona dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: 0755
+  with_items:
+    - "{{ percona_data_dir }}"
+    - "{{ percona_bin_log_dir }}"
+    - "{{ percona_log_dir }}"
+
+- name: create percona configuration file
+  template:
+    src: "{{ percona_version }}-percona.server.my.cnf.j2"
+    dest: /etc/mysql/my.cnf
+    mode: 0600
+
+- name: create Mysql schema
+  command: /usr/bin/mysql_install_db --defaults-file=/etc/mysql/my.cnf
+  args:
+    creates: "{{ percona_data_dir }}/mysql/user.frm"
+
+- name: create custom mysql start script
+  copy:
+    src: mysql_startup.bash
+    dest: /etc/init.d/mysql
+    owner: root
+    group: root
+    mode: 0755
+    
+- name: install mysql check zabbix script 
+  copy:
+    src: mysql_check.pl
+    dest: /opt/mysql_check.pl
+    owner: root
+    group: root
+    mode: 0755
+  tags: [mysqlcheck]
+
+- name: install mysql check zabbix script 
+  copy:
+    src: userparameter_mysql.conf
+    dest: /etc/zabbix/zabbix_agentd.d/userparameter_mysql.conf
+    owner: root
+    group: root
+    mode: 0755
+  tags: [mysqlcheck]
+
+- name: start percona service
+  service: name=mysql enabled=yes state=started

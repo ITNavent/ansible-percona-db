@@ -1,0 +1,49 @@
+---
+- name: add percona apt key
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: 8507EFA5
+    state: present
+
+- name: add percona repository
+  apt_repository:
+    repo: 'deb http://repo.percona.com/apt trusty main'
+    state: present
+
+- name: install percona xtradb packages
+  apt:
+    name: "{{ item }}"
+    install_recommends: no
+    state: present
+  with_items:
+    - percona-xtradb-cluster-server-{{ percona_xtradb_version_pin }}
+    - percona-xtradb-cluster-client-{{ percona_xtradb_version_pin }}
+    - percona-toolkit
+    - python-mysqldb
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: create Percona xtradb dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: 0755
+  with_items:
+    - "{{ percona_data_dir }}"
+    - "{{ percona_log_dir }}"
+
+- name: create percona xtradb configuration file
+  template:
+    src: "{{ percona_version }}-percona.xtradb.my.cnf.j2"
+    dest: /etc/mysql/my.cnf
+    mode: 0600
+
+- name: create Mysql schema
+  command: /usr/bin/mysql_install_db --defaults-file=/etc/mysql/my.cnf
+  args:
+    creates: "{{ percona_data_dir }}/mysql/user.frm"
+
+- name: start percona xtradb service
+  service: name=mysql enabled=yes state=started
